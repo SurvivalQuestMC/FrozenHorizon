@@ -12,6 +12,7 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.GameMode;
+import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerChatEvent;
 import net.minestom.server.event.player.PlayerLoginEvent;
 import net.minestom.server.event.player.PlayerSpawnEvent;
@@ -23,8 +24,12 @@ import net.minestom.server.network.packet.client.play.ClientSetRecipeBookStatePa
 import net.minestom.server.network.packet.server.CachedPacket;
 import net.minestom.server.network.packet.server.play.CameraPacket;
 import net.minestom.server.network.packet.server.play.SpawnEntityPacket;
+import net.minestom.server.particle.Particle;
+import net.minestom.server.timer.TaskSchedule;
 import net.minestom.server.utils.NamespaceID;
 import net.minestom.server.world.DimensionType;
+import net.minestom.server.world.biomes.BiomeEffects;
+import net.minestom.server.world.biomes.BiomeParticle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +40,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 import java.util.UUID;
+
+import static net.minestom.server.utils.NamespaceID.from;
 
 public class Main {
 
@@ -50,7 +57,7 @@ public class Main {
         final var properties = loadProperties();
         final var server = MinecraftServer.init();
 
-        final var dimension = DimensionType.builder(NamespaceID.from("minecraft:oblivion"))
+        final var dimension = DimensionType.builder(from("minecraft:frozen-horizon"))
                 .skylightEnabled(false)
                 .ceilingEnabled(false)
                 .fixedTime(null)
@@ -74,6 +81,14 @@ public class Main {
                 instance.loadChunk(i, j);
             }
         }
+
+        MinecraftServer.getSchedulerManager().submitTask(() -> {
+            for (Player player : MinecraftServer.getConnectionManager().getOnlinePlayers()) {
+                player.sendPacket(new ParticleBuilder(Particle.DRAGON_BREATH, player.getPosition(), true, 60).setOffset(7, 7, 7).build());
+            }
+
+            return TaskSchedule.tick(1);
+        });
 
         final var entityId = Entity.generateId();
         final var entityPacket = new SpawnEntityPacket(entityId, UUID.randomUUID(), EntityType.ARMOR_STAND.id() , Pos.ZERO, 0f, 0, (short) 0, (short) 0, (short) 0);
